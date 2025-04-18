@@ -15,13 +15,13 @@ const CategoryModal = ({
     onClose,
     categories,
     onSelectCategory,
-    
+
 }) => {
     return (
         <Modal
             isVisible={isVisible}
-            onBackdropPress={onClose} 
-            onSwipeComplete={onClose} 
+            onBackdropPress={onClose}
+            onSwipeComplete={onClose}
             swipeDirection={['down']}
             style={styles.modal}
         >
@@ -45,14 +45,14 @@ const CategoryModal = ({
                         </TouchableOpacity>
                     )}
                 />
-                <Button title="Close" onPress={onClose} /> 
+                <Button title="Close" onPress={onClose} />
             </View>
         </Modal>
     );
 };
 
 const styles = StyleSheet.create({
-    modal: { 
+    modal: {
         justifyContent: 'flex-end',
         margin: 0,
     },

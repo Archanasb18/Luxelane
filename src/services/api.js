@@ -17,8 +17,8 @@ export const getAllProducts = async (callback, successCallback) => {
 };
 
 export const getProductsByCategory = async (categoryId, callback, successCallback) => {
-  
-    const endpointPath = categoryId === null ? `categories/`:`categories/${categoryId}`;
+
+    const endpointPath = categoryId === null ? `categories/` : `categories/${categoryId}`;
     console.log('Fetching products by category from API:', `${BASE_URL}/${endpointPath}`)
     try {
         callback?.();
@@ -28,7 +28,7 @@ export const getProductsByCategory = async (categoryId, callback, successCallbac
         return response.data;
     } catch (error) {
         console.error(`getProductsByCategory error (ID: ${categoryId}):`, error.response?.data || error.message);
-        throw error; 
+        throw error;
     }
 };
 

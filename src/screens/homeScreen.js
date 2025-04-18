@@ -33,10 +33,10 @@ const HomeScreen = ({ navigation }) => {
         setModalVisible(prev => !prev);
     }, []);
 
-    console.log({categories})
+    console.log({ categories })
 
     useEffect(() => {
-             dispatch(fetchProductsByCategory({categoryId: null, callback: () => {}, successCallback: () => {}}));
+        dispatch(fetchProductsByCategory({ categoryId: null, callback: () => { }, successCallback: () => { } }));
     }, [dispatch]);
 
     useEffect(() => {
@@ -135,7 +135,7 @@ const HomeScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             {showLoading ? (
-                 <View style={styles.loadingContainer}>
+                <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#ea4c89" />
                     <Text style={styles.loadingText}>Loading Products...</Text>
                 </View>
@@ -157,10 +157,10 @@ const HomeScreen = ({ navigation }) => {
 
             {isModalVisible &&
                 <CategoryModal
-                isVisible={isModalVisible}
-                onClose={toggleModal}
-                categories={categories}
-                onSelectCategory={handleSelectCategory}
+                    isVisible={isModalVisible}
+                    onClose={toggleModal}
+                    categories={categories}
+                    onSelectCategory={handleSelectCategory}
                 />
             }
 
