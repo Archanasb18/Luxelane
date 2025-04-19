@@ -3,12 +3,16 @@ import axios from 'axios';
 const BASE_URL = 'https://api.escuelajs.co/api/v1';
 
 
-export const getAllProducts = async (callback, successCallback) => {
-    console.log('getAllProductsAPi', `${BASE_URL}/products`)
+export const getAllProducts = async (params = {}, callback, successCallback) => {
+    const query = new URLSearchParams(params).toString();
+    const endpointPath = query ? `products?${query}` : 'products';
+
+    console.log('getAllProductsAPI', `${BASE_URL}/${endpointPath}`);
+
     try {
-        callback?.(); // optional loading state handler
-        const response = await axios.get(`${BASE_URL}/products`);
-        successCallback?.(response.data); // optional success handler
+        callback?.();
+        const response = await axios.get(`${BASE_URL}/${endpointPath}`);
+        successCallback?.(response.data);
         return response.data;
     } catch (error) {
         console.error('getAllProducts error:', error);
@@ -24,8 +28,8 @@ export const getProductsByCategory = async (categoryId, callback, successCallbac
         callback?.();
         const response = await axios.get(`${BASE_URL}/${endpointPath}`);
         console.log('Products by category Response from API:', response.data)
-        successCallback?.(response.data);
-        return response.data;
+        successCallback?.(response);
+        return response?.data
     } catch (error) {
         console.error(`getProductsByCategory error (ID: ${categoryId}):`, error.response?.data || error.message);
         throw error;

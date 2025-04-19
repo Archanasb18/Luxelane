@@ -1,11 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { getAllProducts, getProductsByCategory } from '../../services/api';
 
-// Thunks
-export const fetchProducts = createAsyncThunk('product/fetchProducts', async () => {
-    return await getAllProducts();
-});
-
+export const fetchProducts = createAsyncThunk(
+    'product/fetchProducts',
+    async ({ params, callback, successCallback }) => {
+        const data = await getAllProducts(params, callback, successCallback);
+        return data;
+    }
+);
 export const fetchProductsByCategory = createAsyncThunk(
     'product/fetchProductsByCategory',
     async ({ categoryId, callback, successCallback }) => {
@@ -14,7 +16,7 @@ export const fetchProductsByCategory = createAsyncThunk(
     }
 );
 
-// Initial state
+// Initial states
 const initialState = {
     allProducts: [],
     allCategories: [],

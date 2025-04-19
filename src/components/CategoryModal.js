@@ -15,6 +15,7 @@ const CategoryModal = ({
     onClose,
     categories,
     onSelectCategory,
+    selectedCategoryName
 
 }) => {
     return (
@@ -39,13 +40,15 @@ const CategoryModal = ({
                     renderItem={({ item }) => (
                         <TouchableOpacity
                             style={styles.categoryItem}
-                            onPress={() => onSelectCategory(item.id)}
+                            onPress={() => onSelectCategory(item.name)}
                         >
-                            <Text style={styles.categoryItemText}>{item.name}</Text>
+                            <Text style={[styles.categoryItemText, { fontWeight: item?.name === selectedCategoryName ? '700' : '300' }]}>{item.name}</Text>
                         </TouchableOpacity>
                     )}
                 />
-                <Button title="Close" onPress={onClose} />
+                <View style={{ marginTop: 16 }}>
+                    <Button title="Close" onPress={onClose} />
+                </View>
             </View>
         </Modal>
     );
@@ -73,10 +76,12 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
+        flexDirection: 'row',
     },
     categoryItemText: {
         fontSize: 16,
         textAlign: 'center',
+        fontWeight: '300'
     },
 });
 

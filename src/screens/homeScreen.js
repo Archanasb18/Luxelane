@@ -1,15 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-    View,
-    FlatList,
-    Text,
-    Image,
-    TouchableOpacity,
-    StyleSheet,
-    Dimensions,
-    TextInput,
-    ActivityIndicator,
-} from 'react-native';
+import { View,FlatList, Text, Image, TouchableOpacity, StyleSheet, Dimensions, TextInput, ActivityIndicator, RefreshControl} from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts, fetchProductsByCategory } from '../redux/slices/productSlice';
 import { formatPrice } from '../utils/formatPrice';
@@ -22,28 +12,54 @@ const cardWidth = width / 2 - 20;
 const HomeScreen = ({ navigation }) => {
     const dispatch = useDispatch();
     const { allProducts, categories, error: productsError } = useSelector((state) => state.product);
-    const { loading: categoriesLoading, error: categoriesError } = useSelector((state) => state.product);
-    const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+    const [selectedCategoryName, setSelectedCategoryName] = useState('');
     const [isModalVisible, setModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredProducts, setFilteredProducts] = useState([]);
+    const [refreshing, setRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
 
     const toggleModal = useCallback(() => {
         setModalVisible(prev => !prev);
     }, []);
 
-    console.log({ categories })
 
     useEffect(() => {
-        dispatch(fetchProductsByCategory({ categoryId: null, callback: () => { }, successCallback: () => { } }));
+        dispatch(fetchProductsByCategory({ categoryId: null, callback: () => { }, successCallback: (response) => { } }));
     }, [dispatch]);
 
     useEffect(() => {
-        dispatch(fetchProducts());
+        const handler = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 500); // 500ms delay
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchQuery]);
+
+    useEffect(() => {
+        setIsLoading(true);
+        const params = {
+            categorySlug: selectedCategoryName?.toLowerCase(),
+            title: debouncedSearchQuery
+        };
+
+        dispatch(fetchProducts({
+            params,
+            callback: () => { },
+            successCallback: () => setIsLoading(false)
+        }));
         dispatch(fetchProductsByCategory({ categoryId: null }));
-    }, [dispatch]);
+    }, [dispatch, selectedCategoryName, debouncedSearchQuery]);
 
+    const onRefresh = async () => {
+        setRefreshing(true);
+        setSelectedCategoryName('')
+        setSearchQuery('');
+        dispatch(fetchProducts({ categorySlug: '', callback: () => { }, successCallback: () => { setRefreshing(false); } }));
+    };
     useEffect(() => {
         if (searchQuery === '') {
             setFilteredProducts(allProducts);
@@ -63,30 +79,24 @@ const HomeScreen = ({ navigation }) => {
                     <View style={styles.headerTitleContainer}>
                         <Text style={styles.headerTitle}>LUXELANE</Text>
                     </View>
-                    <TextInput
-                        style={styles.searchBar}
-                        placeholder="Search..."
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholderTextColor="#888"
-                    />
+                   
                 </View>
             ),
             headerShown: true,
         });
-    }, [navigation, searchQuery]);
+    }, [navigation]);
 
     const handleProductPress = (product) => {
-        navigation.navigate('Detail', { product });
+        navigation.navigate('Detail', { product :product});
     };
 
     const handleAddToCart = (product) => {
-        console.log('Add to cart:', product.title);
+        // console.log('Add to cart:', product.title);
     };
 
-    const handleSelectCategory = useCallback((categoryId) => {
+    const handleSelectCategory = useCallback((categoryName) => {
         setSearchQuery('');
-        setSelectedCategoryId(categoryId);
+        setSelectedCategoryName(categoryName === 'All Categories' ? '' : categoryName);
         toggleModal();
     }, [toggleModal]);
 
@@ -122,7 +132,7 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.emptyListText}>
                 {searchQuery
                     ? 'No products found matching your search.'
-                    : selectedCategoryId
+                    : selectedCategoryName !== ''
                         ? 'No products found in this category.'
                         : 'Loading....'
                 }
@@ -131,28 +141,52 @@ const HomeScreen = ({ navigation }) => {
     );
 
     const showLoading = isLoading;
-
     return (
         <View style={styles.container}>
+            <View style={styles.searchContainer}>
+                <TextInput
+                    style={styles.searchBar}
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholderTextColor="#888"
+                />
+                {searchQuery.length > 0 && (
+                    <TouchableOpacity
+                        onPress={() => setSearchQuery('')}
+                        style={styles.clearButton} 
+                    >
+                        <AntDesign name="closecircle" size={16} color="#888" />
+                    </TouchableOpacity>
+                )}
+            </View>
             {showLoading ? (
-                <View style={styles.loadingContainer}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color="#ea4c89" />
-                    <Text style={styles.loadingText}>Loading Products...</Text>
                 </View>
             ) : productsError ? (
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>Error loading products: {productsError}</Text>
                 </View>
             ) : (
+
                 <FlatList
                     data={filteredProducts}
                     renderItem={renderItem}
                     keyExtractor={(item) => item.id.toString()}
                     numColumns={2}
                     contentContainerStyle={styles.listContentContainer}
-                    columnWrapperStyle={styles.columnWrapper}
+                    columnWrapperStyle={
+                        filteredProducts.length === 1
+                            ? { justifyContent: 'flex-end' }
+                            : { justifyContent: 'space-between', marginBottom: 15, marginHorizontal: 5 }
+                    }
                     ListEmptyComponent={renderEmptyListComponent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
                 />
+
             )}
 
             {isModalVisible &&
@@ -161,6 +195,7 @@ const HomeScreen = ({ navigation }) => {
                     onClose={toggleModal}
                     categories={categories}
                     onSelectCategory={handleSelectCategory}
+                    selectedCategoryName={selectedCategoryName}
                 />
             }
 
@@ -175,6 +210,15 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f8f9fa',
+    },
+    searchContainer: {
+        width: '70%', 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        marginHorizontal: 15, 
+        marginTop: 10,
+        marginBottom: 5, 
+        position: 'relative', 
     },
     headerContainer: {
         flexDirection: 'row',
@@ -197,14 +241,24 @@ const styles = StyleSheet.create({
         flexShrink: 1,
     },
     searchBar: {
-        flex: 1,
-        height: 35,
+        flex: 1, 
+        height: 40, 
         backgroundColor: 'white',
-        borderRadius: 18,
-        paddingHorizontal: 15,
+        borderRadius: 20, 
+        paddingLeft: 15, 
+        paddingRight: 35, 
         fontSize: 14,
         borderWidth: 1,
         borderColor: '#ddd',
+    },
+    clearButton: {
+        position: 'absolute', 
+        right: 10, 
+        top: 0, 
+        height: '100%', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        paddingHorizontal: 5, 
     },
     categoriesButton: {
         position: 'absolute',
@@ -298,6 +352,7 @@ const styles = StyleSheet.create({
         color: '#888',
         textAlign: 'center',
     },
+  
 });
 
 export default HomeScreen;
