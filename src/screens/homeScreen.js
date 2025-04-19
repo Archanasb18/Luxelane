@@ -143,6 +143,7 @@ const HomeScreen = ({ navigation }) => {
     const showLoading = isLoading;
     return (
         <View style={styles.container}>
+            <View style={{flexDirection:'row',justifyContent:'space-between',width:'95%',alignSelf:'center'}}>
             <View style={styles.searchContainer}>
                 <TextInput
                     style={styles.searchBar}
@@ -159,6 +160,16 @@ const HomeScreen = ({ navigation }) => {
                         <AntDesign name="closecircle" size={16} color="#888" />
                     </TouchableOpacity>
                 )}
+            </View>
+            <TouchableOpacity
+                style={{height:40,width:40,backgroundColor:'#E6E6E6',borderRadius:20,justifyContent:'center',alignItems:'center',marginTop:10}}
+                onPress={(e) => {
+                    e.stopPropagation();
+                    handleAddToCart(item);
+                }}
+            >
+                <Text style={styles.cartIconText}>🛒</Text>
+            </TouchableOpacity>
             </View>
             {showLoading ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -212,10 +223,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8f9fa',
     },
     searchContainer: {
-        width: '70%', 
+        width: '80%', 
         flexDirection: 'row', 
         alignItems: 'center', 
-        marginHorizontal: 15, 
+        // marginHorizontal: 10, 
         marginTop: 10,
         marginBottom: 5, 
         position: 'relative', 
