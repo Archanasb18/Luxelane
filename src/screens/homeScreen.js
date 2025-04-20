@@ -42,15 +42,15 @@ const HomeScreen = ({ navigation }) => {
     useEffect(() => {
         setIsLoading(true);
         const params = {
-            categorySlug: selectedCategoryName?.toLowerCase(),
+            ...(selectedCategoryName && { categorySlug: selectedCategoryName.toLowerCase() }),
             title: debouncedSearchQuery
-        };
-
-        dispatch(fetchProducts({
+          };
+          
+          dispatch(fetchProducts({
             params,
-            callback: () => { },
+            callback: () => {},
             successCallback: () => setIsLoading(false)
-        }));
+          }));
         dispatch(fetchProductsByCategory({ categoryId: null }));
     }, [dispatch, selectedCategoryName, debouncedSearchQuery]);
 
