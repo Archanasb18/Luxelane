@@ -1,4 +1,7 @@
 import { StyleSheet } from 'react-native';
+import { Dimensions } from 'react-native'; 
+export const screenWidth = Dimensions.get('window').width;
+export const screenHeight = Dimensions.get('window').width;
 
 export const colors = {
     primary: '#ea4c89',
@@ -61,6 +64,24 @@ export const globalStyles = StyleSheet.create({
         height: 200,
         borderRadius: 10,
       },
+      errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 50,
+        paddingHorizontal: 20,
+    },
+    errorText: {
+        fontSize: 16,
+        color: '#ff4d4d',
+        textAlign: 'center',
+    },
+    loaderContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingTop: 50,
+    },
 });
 
 export const typography = StyleSheet.create({

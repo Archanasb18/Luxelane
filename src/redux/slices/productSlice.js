@@ -21,6 +21,7 @@ const initialState = {
     allProducts: [],
     allCategories: [],
     categories: [],
+    cartItems: {},
     loading: false,
     error: null,
 };
@@ -46,7 +47,40 @@ const handleAsync = (builder, thunk, onSuccess) => {
 const productSlice = createSlice({
     name: 'product',
     initialState,
-    reducers: {},
+    reducers: {
+        addToCart: (state, action) => {
+            const product = action.payload;
+            const id = product.id;
+            if (state.cartItems[id]) {
+                state.cartItems[id].quantity += 1;
+            } else {
+                state.cartItems[id] = { ...product, quantity: 1 };
+            }
+        },
+        incrementQuantity: (state, action) => {
+            const id = action.payload;
+            if (state.cartItems[id]) {
+                state.cartItems[id].quantity += 1;
+            }
+        },
+        decrementQuantity: (state, action) => {
+            const id = action.payload;
+            if (state.cartItems[id]) {
+                if (state.cartItems[id].quantity > 1) {
+                    state.cartItems[id].quantity -= 1;
+                } else {
+                    delete state.cartItems[id];
+                }
+            }
+        },
+        removeFromCart: (state, action) => {
+            const id = action.payload;
+            delete state.cartItems[id];
+        },
+        clearCart: (state) => {
+            state.cartItems = {};
+        },
+    },
     extraReducers: (builder) => {
         handleAsync(builder, fetchProducts, (state, action) => {
             state.allProducts = action.payload;
@@ -55,6 +89,23 @@ const productSlice = createSlice({
             state.categories = action.payload;
         });
     },
-});
+    extraReducers: (builder) => {
+        handleAsync(builder, fetchProducts, (state, action) => {
+            state.allProducts = action.payload;
+        });
+        handleAsync(builder, fetchProductsByCategory, (state, action) => {
+            state.categories = action.payload;
+        });
 
+    },
+});
+export const {
+    addToCart,
+    incrementQuantity,
+    decrementQuantity,
+    removeFromCart,
+    clearCart,
+} = productSlice.actions;
+
+// Then export the reducer as default
 export default productSlice.reducer;

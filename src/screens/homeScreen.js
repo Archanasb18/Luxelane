@@ -1,38 +1,41 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View,FlatList, Text, Image, TouchableOpacity, StyleSheet, Dimensions, TextInput, ActivityIndicator, RefreshControl} from 'react-native';
+import { View, FlatList, Text, TextInput, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts, fetchProductsByCategory } from '../redux/slices/productSlice';
-import { formatPrice } from '../utils/formatPrice';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import CategoryModal from '../components/CategoryModal';
+import ArticleCard from '../components/ArticleCard';
+import { ErrorScreen,LoadingScreen } from '../components/commonComponents';
+import { screenWidth } from '../styles/globalStyles';
 
-const { width } = Dimensions.get('window');
-const cardWidth = width / 2 - 20;
+const cardWidth = screenWidth / 2 - 20;
 
 const HomeScreen = ({ navigation }) => {
     const dispatch = useDispatch();
     const { allProducts, categories, error: productsError } = useSelector((state) => state.product);
-    const [selectedCategoryName, setSelectedCategoryName] = useState('');
+    const [selectedCategorySlug, setSelectedCategorySlug] = useState('');
     const [isModalVisible, setModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
-
+  
+    const cartItems = useSelector(state => state.product.cartItems);
+    
+  
     const toggleModal = useCallback(() => {
         setModalVisible(prev => !prev);
     }, []);
 
-
     useEffect(() => {
-        dispatch(fetchProductsByCategory({ categoryId: null, callback: () => { }, successCallback: (response) => { } }));
+        dispatch(fetchProductsByCategory({ categoryId: null }));
     }, [dispatch]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
             setDebouncedSearchQuery(searchQuery);
-        }, 500); // 500ms delay
+        }, 500); // adding debounce for search input
 
         return () => {
             clearTimeout(handler);
@@ -42,34 +45,30 @@ const HomeScreen = ({ navigation }) => {
     useEffect(() => {
         setIsLoading(true);
         const params = {
-            ...(selectedCategoryName && { categorySlug: selectedCategoryName.toLowerCase() }),
+            ...(selectedCategorySlug && { categorySlug: selectedCategorySlug }),
             title: debouncedSearchQuery
-          };
-          
-          dispatch(fetchProducts({
+        };
+        dispatch(fetchProducts({
             params,
-            callback: () => {},
+            callback: () => { },
             successCallback: () => setIsLoading(false)
-          }));
-        dispatch(fetchProductsByCategory({ categoryId: null }));
-    }, [dispatch, selectedCategoryName, debouncedSearchQuery]);
+        }));
+    }, [dispatch, selectedCategorySlug, debouncedSearchQuery]);
 
     const onRefresh = async () => {
         setRefreshing(true);
-        setSelectedCategoryName('')
+        setSelectedCategorySlug('');
         setSearchQuery('');
         dispatch(fetchProducts({ categorySlug: '', callback: () => { }, successCallback: () => { setRefreshing(false); } }));
     };
+
     useEffect(() => {
-        if (searchQuery === '') {
-            setFilteredProducts(allProducts);
-        } else {
-            const lowerCaseQuery = searchQuery.toLowerCase();
-            const filtered = allProducts.filter(product =>
-                product.title.toLowerCase().includes(lowerCaseQuery)
-            );
-            setFilteredProducts(filtered);
-        }
+        const filtered = searchQuery
+            ? allProducts.filter(product =>
+                product.title.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+            : allProducts;
+        setFilteredProducts(filtered);
     }, [searchQuery, allProducts]);
 
     useEffect(() => {
@@ -79,7 +78,6 @@ const HomeScreen = ({ navigation }) => {
                     <View style={styles.headerTitleContainer}>
                         <Text style={styles.headerTitle}>LUXELANE</Text>
                     </View>
-                   
                 </View>
             ),
             headerShown: true,
@@ -87,52 +85,34 @@ const HomeScreen = ({ navigation }) => {
     }, [navigation]);
 
     const handleProductPress = (product) => {
-        navigation.navigate('Detail', { product :product});
+        navigation.navigate('Detail', { product });
     };
 
-    const handleAddToCart = (product) => {
-        // console.log('Add to cart:', product.title);
-    };
-
-    const handleSelectCategory = useCallback((categoryName) => {
+    const handleSelectCategory = useCallback((categorySlug) => {
         setSearchQuery('');
-        setSelectedCategoryName(categoryName === 'All Categories' ? '' : categoryName);
+        setSelectedCategorySlug(categorySlug === 'All Categories' ? '' : categorySlug);
         toggleModal();
     }, [toggleModal]);
 
-    const renderItem = ({ item }) => (
-        <TouchableOpacity
-            style={styles.card}
-            onPress={() => handleProductPress(item)}
-        >
-            <Image
-                source={{ uri: item.images[0] }}
-                style={styles.image}
-                resizeMode="cover"
-            />
-            <View style={styles.info}>
-                <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-                <Text style={styles.price}>{formatPrice(item.price)}</Text>
-                <Text style={styles.categoryNameText}>{item.category?.name || 'N/A'}</Text>
-            </View>
-            <TouchableOpacity
-                style={styles.cartButton}
-                onPress={(e) => {
-                    e.stopPropagation();
-                    handleAddToCart(item);
-                }}
-            >
-                <Text style={styles.cartIconText}>🛒</Text>
-            </TouchableOpacity>
-        </TouchableOpacity>
-    );
+    const handleAddToCart = (product) => {
+        dispatch(addToCart(product));
+    };
+    
+    const handleIncrement = (productId) => {
+        dispatch(incrementQuantity(productId));
+    };
+    
+    const handleDecrement = (productId) => {
+        dispatch(decrementQuantity(productId));
+    };
+    console.log('cartItems rendered',cartItems);
 
     const renderEmptyListComponent = () => (
         <View style={styles.emptyListContainer}>
             <Text style={styles.emptyListText}>
                 {searchQuery
                     ? 'No products found matching your search.'
-                    : selectedCategoryName !== ''
+                    : selectedCategorySlug !== ''
                         ? 'No products found in this category.'
                         : 'Loading....'
                 }
@@ -140,76 +120,74 @@ const HomeScreen = ({ navigation }) => {
         </View>
     );
 
-    const showLoading = isLoading;
     return (
         <View style={styles.container}>
-            <View style={{flexDirection:'row',justifyContent:'space-between',width:'95%',alignSelf:'center'}}>
-            <View style={styles.searchContainer}>
-                <TextInput
-                    style={styles.searchBar}
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholderTextColor="#888"
-                />
-                {searchQuery.length > 0 && (
-                    <TouchableOpacity
-                        onPress={() => setSearchQuery('')}
-                        style={styles.clearButton} 
-                    >
-                        <AntDesign name="closecircle" size={16} color="#888" />
-                    </TouchableOpacity>
-                )}
-            </View>
-            <TouchableOpacity
-                style={{height:40,width:40,backgroundColor:'#E6E6E6',borderRadius:20,justifyContent:'center',alignItems:'center',marginTop:10}}
-                onPress={(e) => {
-                    e.stopPropagation();
-                    handleAddToCart(item);
-                }}
-            >
-                <Text style={styles.cartIconText}>🛒</Text>
-            </TouchableOpacity>
-            </View>
-            {showLoading ? (
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <ActivityIndicator size="large" color="#ea4c89" />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '95%', alignSelf: 'center' }}>
+                <View style={styles.searchContainer}>
+                    <TextInput
+                        style={styles.searchBar}
+                        placeholder="Search..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholderTextColor="#888"
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity
+                            onPress={() => setSearchQuery('')}
+                            style={styles.clearButton}
+                        >
+                            <AntDesign name="closecircle" size={16} color="#888" />
+                        </TouchableOpacity>
+                    )}
                 </View>
+                <TouchableOpacity
+                    style={styles.cartButton}
+                    onPress={(e) => {
+                        e.stopPropagation();
+                        navigation.navigate('Cart')
+                    }}
+                >
+                    <Text style={styles.cartIconText}>🛒</Text>
+                </TouchableOpacity>
+            </View>
+            {isLoading ? (
+               <LoadingScreen/>
             ) : productsError ? (
-                <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>Error loading products: {productsError}</Text>
-                </View>
+               <ErrorScreen/>
             ) : (
-
                 <FlatList
                     data={filteredProducts}
-                    renderItem={renderItem}
+                    renderItem={({ item }) => (
+                        <ArticleCard
+                            item={item}
+                            handleAddToCart={handleAddToCart}
+                            handleProductPress={handleProductPress}
+                            handleIncrement={handleIncrement}
+                            handleDecrement={handleDecrement}
+                            cartItems={cartItems}   
+                        />
+                    )}
                     keyExtractor={(item) => item.id.toString()}
                     numColumns={2}
                     contentContainerStyle={styles.listContentContainer}
-                    columnWrapperStyle={
-                        filteredProducts.length === 1
-                            ? { justifyContent: 'flex-end' }
-                            : { justifyContent: 'space-between', marginBottom: 15, marginHorizontal: 5 }
-                    }
+                    columnWrapperStyle={filteredProducts.length === 1
+                        ? { justifyContent: 'flex-start' }
+                        : { justifyContent: 'space-between', marginBottom: 15, marginHorizontal: 5 }}
                     ListEmptyComponent={renderEmptyListComponent}
                     refreshControl={
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                     }
                 />
-
             )}
-
-            {isModalVisible &&
+            {isModalVisible && (
                 <CategoryModal
                     isVisible={isModalVisible}
                     onClose={toggleModal}
                     categories={categories}
                     onSelectCategory={handleSelectCategory}
-                    selectedCategoryName={selectedCategoryName}
+                    selectedCategorySlug={selectedCategorySlug}
                 />
-            }
-
+            )}
             <TouchableOpacity onPress={toggleModal} style={styles.categoriesButton}>
                 <AntDesign name="filter" size={24} color="#636363" />
             </TouchableOpacity>
@@ -223,17 +201,16 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8f9fa',
     },
     searchContainer: {
-        width: '80%', 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        // marginHorizontal: 10, 
+        width: '80%',
+        flexDirection: 'row',
+        alignItems: 'center',
         marginTop: 10,
-        marginBottom: 5, 
-        position: 'relative', 
+        marginBottom: 5,
+        position: 'relative',
     },
     headerContainer: {
         flexDirection: 'row',
-        width: width,
+        width: screenWidth,
         backgroundColor: '#E6E6E6',
         paddingHorizontal: 15,
         paddingVertical: 10,
@@ -252,24 +229,24 @@ const styles = StyleSheet.create({
         flexShrink: 1,
     },
     searchBar: {
-        flex: 1, 
-        height: 40, 
+        flex: 1,
+        height: 40,
         backgroundColor: 'white',
-        borderRadius: 20, 
-        paddingLeft: 15, 
-        paddingRight: 35, 
+        borderRadius: 20,
+        paddingLeft: 15,
+        paddingRight: 35,
         fontSize: 14,
         borderWidth: 1,
         borderColor: '#ddd',
     },
     clearButton: {
-        position: 'absolute', 
-        right: 10, 
-        top: 0, 
-        height: '100%', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        paddingHorizontal: 5, 
+        position: 'absolute',
+        right: 10,
+        top: 0,
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 5,
     },
     categoriesButton: {
         position: 'absolute',
@@ -291,7 +268,7 @@ const styles = StyleSheet.create({
         shadowRadius: 3,
     },
     listContentContainer: {
-        paddingHorizontal: 5,
+        paddingHorizontal: 10,
         paddingVertical: 15,
         paddingBottom: 100,
     },
@@ -363,7 +340,7 @@ const styles = StyleSheet.create({
         color: '#888',
         textAlign: 'center',
     },
-  
+    
 });
 
 export default HomeScreen;

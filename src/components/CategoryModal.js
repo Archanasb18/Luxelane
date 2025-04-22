@@ -1,23 +1,8 @@
 import React from 'react';
-import {
-    View,
-    Text,
-    FlatList,
-    TouchableOpacity,
-    Button,
-    StyleSheet,
-    Dimensions,
-} from 'react-native';
+import {View,Text,FlatList,TouchableOpacity,Button,StyleSheet,Dimensions,} from 'react-native';
 import Modal from 'react-native-modal';
 
-const CategoryModal = ({
-    isVisible,
-    onClose,
-    categories,
-    onSelectCategory,
-    selectedCategoryName
-
-}) => {
+const CategoryModal = ({ isVisible, onClose, categories, onSelectCategory, selectedCategorySlug }) => {
     return (
         <Modal
             isVisible={isVisible}
@@ -40,9 +25,9 @@ const CategoryModal = ({
                     renderItem={({ item }) => (
                         <TouchableOpacity
                             style={styles.categoryItem}
-                            onPress={() => onSelectCategory(item.name)}
+                            onPress={() => onSelectCategory(item.slug)}
                         >
-                            <Text style={[styles.categoryItemText, { fontWeight: item?.name === selectedCategoryName ? '700' : '300' }]}>{item.name}</Text>
+                            <Text style={[styles.categoryItemText, { fontWeight: item?.slug === selectedCategorySlug ? '700' : '300' }]}>{item.name}</Text>
                         </TouchableOpacity>
                     )}
                 />
@@ -64,7 +49,7 @@ const styles = StyleSheet.create({
         padding: 22,
         borderTopLeftRadius: 15,
         borderTopRightRadius: 15,
-        maxHeight: Dimensions.get('window').height * 0.6, // Limit modal height
+        maxHeight: Dimensions.get('window').height * 0.6,
     },
     modalTitle: {
         fontSize: 18,

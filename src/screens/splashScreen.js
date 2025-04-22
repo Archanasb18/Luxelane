@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-
-const { width } = Dimensions.get('window');
+import { screenWidth } from '../styles/globalStyles';
 
 const SplashScreen = () => {
     const navigation = useNavigation();
@@ -67,7 +66,7 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
     },
     line: {
-        width: width * 0.3,
+        width: screenWidth * 0.3,
         height: 2,
         backgroundColor: '#FFFFFF',
         marginVertical: 15,

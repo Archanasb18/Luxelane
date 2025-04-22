@@ -1,25 +1,15 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'; // Added useRef, useCallback
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  Image,
-  FlatList,
-  TouchableOpacity, 
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, Image, FlatList, ScrollView, } from 'react-native';
 import { formatPrice } from '../utils/formatPrice';
 import { getAllProducts } from '../services/api';
 import { PageHeader } from '../components/commonComponents';
-import { colors } from '../styles/globalStyles'; 
-
-const { width } = Dimensions.get('window');
+import { colors, screenHeight, screenWidth } from '../styles/globalStyles';
+import RelatedCard from '../components/RelatedCard';
 
 const DetailScreen = ({ route, navigation }) => {
   const { product } = route.params;
   const [related, setRelated] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0); 
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     const fetchRelated = async () => {
@@ -32,15 +22,15 @@ const DetailScreen = ({ route, navigation }) => {
 
     fetchRelated();
   }, [product]);
-console.log('DetailScreenroute', route);
+
   useEffect(() => {
     navigation.setOptions({
-        header: () => (
-           <PageHeader title={product?.category?.name ?? ''} onBackPress={()=>{navigation.goBack()}}/>
-        ),
-        headerShown: true,
+      header: () => (
+        <PageHeader title={product?.category?.name ?? ''} onBackPress={() => { navigation.goBack() }} />
+      ),
+      headerShown: true,
     });
-}, [navigation]);
+  }, [navigation]);
 
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (viewableItems.length > 0) {
@@ -54,18 +44,6 @@ console.log('DetailScreenroute', route);
     <Image source={{ uri: item }} style={styles.image} />
   );
 
-  const renderRelated = ({ item }) => (
-    <TouchableOpacity
-      style={styles.relatedCard}
-      onPress={() => navigation.push('Detail', { product: item })}
-    >
-      <Image source={{ uri: item.images[0] }} style={styles.relatedImage} />
-      <Text style={styles.relatedTitle} numberOfLines={1}>
-        {item.title}
-      </Text>
-    </TouchableOpacity>
-  );
-
   return (
     <ScrollView style={styles.container}>
       <View style={styles.carouselContainer}>
@@ -76,10 +54,11 @@ console.log('DetailScreenroute', route);
           showsHorizontalScrollIndicator={false}
           renderItem={renderImage}
           keyExtractor={(_, index) => index.toString()}
-          onViewableItemsChanged={onViewableItemsChanged} 
-          viewabilityConfig={viewabilityConfig} 
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
         />
-        {product.images.length > 1 && ( 
+        
+        {product.images.length > 1 && (
           <View style={styles.paginationContainer}>
             {product.images.map((_, index) => (
               <View
@@ -104,7 +83,12 @@ console.log('DetailScreenroute', route);
             <FlatList
               horizontal
               data={related}
-              renderItem={renderRelated}
+              renderItem={({ item }) => (
+                <RelatedCard
+                  item={item}
+                  onPress={() => navigation.push('Detail', { product: item })}
+                />
+              )}
               keyExtractor={(item) => item.id.toString()}
               showsHorizontalScrollIndicator={false}
             />
@@ -118,18 +102,18 @@ console.log('DetailScreenroute', route);
 const styles = StyleSheet.create({
   container: { flex: 1 },
   carouselContainer: {
-    height: 300,
+    height: screenHeight * 0.8,
   },
   image: {
-    width: width,
-    height: 300, 
+    width: screenWidth,
+    height: screenHeight * 0.8,
   },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'absolute', 
-    bottom: 10, 
+    position: 'absolute',
+    bottom: 10,
     left: 0,
     right: 0,
   },
@@ -137,12 +121,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.lightText || '#ccc', 
+    backgroundColor: colors.lightText || '#ccc',
     marginHorizontal: 4,
   },
   paginationDotActive: {
-    backgroundColor: colors.primary || '#ea4c89', 
-    width: 10, 
+    backgroundColor: colors.primary || '#ea4c89',
+    width: 10,
     height: 10,
     borderRadius: 5,
   },
@@ -175,21 +159,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 10,
-  },
-  relatedCard: {
-    marginRight: 10,
-    width: 120,
-    alignItems: 'center',
-  },
-  relatedImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
-  },
-  relatedTitle: {
-    marginTop: 6,
-    fontSize: 14,
-    textAlign: 'center',
   },
 });
 
