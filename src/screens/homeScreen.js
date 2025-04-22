@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     listContentContainer: {
         paddingHorizontal: 10,
         paddingVertical: 15,
-        paddingBottom: 100,
+        paddingBottom: 20,
     },
     columnWrapper: {
         justifyContent: 'space-around',
