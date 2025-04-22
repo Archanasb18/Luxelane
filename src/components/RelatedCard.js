@@ -19,13 +19,13 @@ export default RelatedCard;
 
 const cardStyles = StyleSheet.create({
     relatedCard: {
-        marginRight: 0,
+        marginRight:25,
         width: screenWidth*0.3,
         alignItems: 'center',
       },
       relatedImage: {
-        width: screenWidth*0.25,
-        height: screenHeight*0.25,
+        width: screenWidth*0.33,
+        height: screenHeight*0.15,
         borderRadius: 10,
       },
       relatedTitle: {

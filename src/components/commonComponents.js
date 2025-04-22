@@ -20,10 +20,10 @@ export const LoadingScreen = ({ }) => {
         </View>
     );
 };
-export const ErrorScreen = ({ }) => {
+export const ErrorScreen = ({ productsError}) => {
     return (
         <View style={globalStyles.errorContainer}>
-            <Text style={styles.errorText}>Error loading products: {productsError}</Text>
+            <Text style={globalStyles.errorText}>Error loading products: {productsError}</Text>
         </View>
     );
 };

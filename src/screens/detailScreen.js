@@ -57,7 +57,7 @@ const DetailScreen = ({ route, navigation }) => {
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
         />
-        
+
         {product.images.length > 1 && (
           <View style={styles.paginationContainer}>
             {product.images.map((_, index) => (
@@ -102,11 +102,11 @@ const DetailScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   carouselContainer: {
-    height: screenHeight * 0.8,
+    height: screenHeight * 0.35,
   },
   image: {
     width: screenWidth,
-    height: screenHeight * 0.8,
+    height: screenHeight * 0.35,
   },
   paginationContainer: {
     flexDirection: 'row',

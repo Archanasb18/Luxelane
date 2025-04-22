@@ -22,6 +22,8 @@ const initialState = {
     allCategories: [],
     categories: [],
     cartItems: {},
+    minPrice: '',
+    maxPrice: '',
     loading: false,
     error: null,
 };
@@ -80,14 +82,12 @@ const productSlice = createSlice({
         clearCart: (state) => {
             state.cartItems = {};
         },
-    },
-    extraReducers: (builder) => {
-        handleAsync(builder, fetchProducts, (state, action) => {
-            state.allProducts = action.payload;
-        });
-        handleAsync(builder, fetchProductsByCategory, (state, action) => {
-            state.categories = action.payload;
-        });
+        setMinPrice: (state, action) => {
+            state.minPrice = action.payload;
+        },
+        setMaxPrice: (state, action) => {
+            state.maxPrice = action.payload;
+        },
     },
     extraReducers: (builder) => {
         handleAsync(builder, fetchProducts, (state, action) => {
@@ -105,6 +105,7 @@ export const {
     decrementQuantity,
     removeFromCart,
     clearCart,
+    setMinPrice, setMaxPrice 
 } = productSlice.actions;
 
 // Then export the reducer as default

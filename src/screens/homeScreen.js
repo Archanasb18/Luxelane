@@ -1,18 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, FlatList, Text, TextInput, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProducts, fetchProductsByCategory } from '../redux/slices/productSlice';
+import { fetchProducts, fetchProductsByCategory, setMinPrice, setMaxPrice } from '../redux/slices/productSlice';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import CategoryModal from '../components/CategoryModal';
 import ArticleCard from '../components/ArticleCard';
-import { ErrorScreen,LoadingScreen } from '../components/commonComponents';
+import { ErrorScreen, LoadingScreen } from '../components/commonComponents';
 import { screenWidth } from '../styles/globalStyles';
 
 const cardWidth = screenWidth / 2 - 20;
 
 const HomeScreen = ({ navigation }) => {
     const dispatch = useDispatch();
-    const { allProducts, categories, error: productsError } = useSelector((state) => state.product);
+    const { allProducts, categories, error: productsError, minPrice, maxPrice } = useSelector((state) => state.product);
     const [selectedCategorySlug, setSelectedCategorySlug] = useState('');
     const [isModalVisible, setModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -20,10 +20,9 @@ const HomeScreen = ({ navigation }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
-  
+
     const cartItems = useSelector(state => state.product.cartItems);
-    
-  
+
     const toggleModal = useCallback(() => {
         setModalVisible(prev => !prev);
     }, []);
@@ -44,16 +43,22 @@ const HomeScreen = ({ navigation }) => {
 
     useEffect(() => {
         setIsLoading(true);
+
         const params = {
             ...(selectedCategorySlug && { categorySlug: selectedCategorySlug }),
-            title: debouncedSearchQuery
+            title: debouncedSearchQuery,
+            ...(minPrice && { price_min: minPrice }), // Using minPrice from Redux
+            ...(maxPrice && { price_max: maxPrice }), // Using maxPrice from Redux
         };
+
         dispatch(fetchProducts({
             params,
-            callback: () => { },
-            successCallback: () => setIsLoading(false)
+            callback: () => setIsLoading(true),
+            successCallback: () => setIsLoading(false),
         }));
-    }, [dispatch, selectedCategorySlug, debouncedSearchQuery]);
+    }, [dispatch, selectedCategorySlug, debouncedSearchQuery, minPrice, maxPrice]);
+
+
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -97,15 +102,14 @@ const HomeScreen = ({ navigation }) => {
     const handleAddToCart = (product) => {
         dispatch(addToCart(product));
     };
-    
+
     const handleIncrement = (productId) => {
         dispatch(incrementQuantity(productId));
     };
-    
+
     const handleDecrement = (productId) => {
         dispatch(decrementQuantity(productId));
     };
-    console.log('cartItems rendered',cartItems);
 
     const renderEmptyListComponent = () => (
         <View style={styles.emptyListContainer}>
@@ -119,7 +123,20 @@ const HomeScreen = ({ navigation }) => {
             </Text>
         </View>
     );
+    const handleApplyFilters = ({ categoryId, minPrice, maxPrice }) => {
+        const params = {
+            ...(categoryId && { categorySlug: categoryId }), // categorySlug is passed if a category is selected
+            ...(minPrice && { price_min: minPrice }), // Min price filter
+            ...(maxPrice && { price_max: maxPrice }), // Max price filter
+        };
 
+        // Dispatch the fetchProducts action with the applied filters
+        dispatch(fetchProducts({
+            params,
+            callback: () => setIsLoading(true),
+            successCallback: () => setIsLoading(false),
+        }));
+    };
     return (
         <View style={styles.container}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '95%', alignSelf: 'center' }}>
@@ -151,9 +168,9 @@ const HomeScreen = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
             {isLoading ? (
-               <LoadingScreen/>
+                <LoadingScreen />
             ) : productsError ? (
-               <ErrorScreen/>
+                <ErrorScreen productsError={productsError} />
             ) : (
                 <FlatList
                     data={filteredProducts}
@@ -164,7 +181,7 @@ const HomeScreen = ({ navigation }) => {
                             handleProductPress={handleProductPress}
                             handleIncrement={handleIncrement}
                             handleDecrement={handleDecrement}
-                            cartItems={cartItems}   
+                            cartItems={cartItems}
                         />
                     )}
                     keyExtractor={(item) => item.id.toString()}
@@ -186,6 +203,9 @@ const HomeScreen = ({ navigation }) => {
                     categories={categories}
                     onSelectCategory={handleSelectCategory}
                     selectedCategorySlug={selectedCategorySlug}
+                    setMinPrice={(value) => dispatch(setMinPrice(value))} // Update minPrice in Redux
+                    setMaxPrice={(value) => dispatch(setMaxPrice(value))} // Update maxPrice in Redux
+                    onApplyFilters={handleApplyFilters}
                 />
             )}
             <TouchableOpacity onPress={toggleModal} style={styles.categoriesButton}>
@@ -340,7 +360,7 @@ const styles = StyleSheet.create({
         color: '#888',
         textAlign: 'center',
     },
-    
+
 });
 
 export default HomeScreen;
