@@ -94,5 +94,4 @@ export const typography = StyleSheet.create({
         fontSize: 16,
         color: colors.text,
     },
-    // Add more text styles
 });

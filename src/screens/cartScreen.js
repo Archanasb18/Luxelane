@@ -5,51 +5,70 @@ import {incrementQuantity,decrementQuantity,removeFromCart,} from '../redux/slic
 import { formatPrice } from '../utils/formatPrice';
 import { PageHeader } from '../components/commonComponents';
 
-const CartScreen = ({navigation}) => {
+const CartScreen = ({ navigation }) => {
     const dispatch = useDispatch();
     const cartItems = useSelector(state => state.product.cartItems);
-    const cartArray = Object.values(cartItems);
 
-    const total = cartArray.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const cartArray = React.useMemo(() => Object.values(cartItems), [cartItems]);
+    const total = React.useMemo(
+        () => cartArray.reduce((sum, item) => sum + item.price * item.quantity, 0),
+        [cartArray]
+    );
 
     useEffect(() => {
         navigation.setOptions({
-          header: () => (
-            <PageHeader title={'Cart'} onBackPress={() => { navigation.goBack() }} />
-          ),
-          headerShown: true,
+            header: () => (
+                <PageHeader title="Cart" onBackPress={navigation.goBack} />
+            ),
+            headerShown: true,
         });
-      }, [navigation]);
+    }, [navigation]);
 
-    const renderItem = ({ item }) => (
-        <View style={styles.card}>
-            <Image source={{ uri: item.images[0] }} style={styles.image} />
-            <View style={styles.details}>
-                <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-                <Text style={styles.price}>{formatPrice(item.price)}</Text>
-                <View style={styles.stepperRow}>
-                    <TouchableOpacity
-                        onPress={() => dispatch(decrementQuantity(item.id))}
-                        style={styles.stepperButton}
-                    >
-                        <Text style={styles.stepperText}>−</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.quantity}>{item.quantity}</Text>
-                    <TouchableOpacity
-                        onPress={() => dispatch(incrementQuantity(item.id))}
-                        style={styles.stepperButton}
-                    >
-                        <Text style={styles.stepperText}>+</Text>
-                    </TouchableOpacity>
+    const handleDecrement = React.useCallback(
+        id => dispatch(decrementQuantity(id)),
+        [dispatch]
+    );
+    const handleIncrement = React.useCallback(
+        id => dispatch(incrementQuantity(id)),
+        [dispatch]
+    );
+    const handleRemove = React.useCallback(
+        id => dispatch(removeFromCart(id)),
+        [dispatch]
+    );
+
+    const renderItem = React.useCallback(
+        ({ item }) => (
+            <View style={styles.card}>
+                <Image source={{ uri: item.images[0] }} style={styles.image} />
+                <View style={styles.details}>
+                    <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
+                    <Text style={styles.price}>{formatPrice(item.price)}</Text>
+                    <View style={styles.stepperRow}>
+                        <TouchableOpacity
+                            onPress={() => handleDecrement(item.id)}
+                            style={styles.stepperButton}
+                        >
+                            <Text style={styles.stepperText}>−</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.quantity}>{item.quantity}</Text>
+                        <TouchableOpacity
+                            onPress={() => handleIncrement(item.id)}
+                            style={styles.stepperButton}
+                        >
+                            <Text style={styles.stepperText}>+</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
+                <TouchableOpacity
+                    onPress={() => handleRemove(item.id)}
+                    style={styles.removeBtn}
+                >
+                    <Text style={styles.removeText}>✕</Text>
+                </TouchableOpacity>
             </View>
-            <TouchableOpacity
-                onPress={() => dispatch(removeFromCart(item.id))}
-                style={styles.removeBtn}
-            >
-                <Text style={styles.removeText}>✕</Text>
-            </TouchableOpacity>
-        </View>
+        ),
+        [handleDecrement, handleIncrement, handleRemove]
     );
 
     return (

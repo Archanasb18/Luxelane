@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, FlatList, Text, TextInput, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchProducts, fetchProductsByCategory, setMinPrice, setMaxPrice } from '../redux/slices/productSlice';
+import { fetchProducts, fetchProductsByCategory, setMinPrice, setMaxPrice, setSortOrder } from '../redux/slices/productSlice';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import MIcon from 'react-native-vector-icons/MaterialIcons';
+import SortModal from '../components/sortModal';
 import CategoryModal from '../components/CategoryModal';
 import ArticleCard from '../components/ArticleCard';
 import { ErrorScreen, LoadingScreen } from '../components/commonComponents';
@@ -16,64 +18,44 @@ const HomeScreen = ({ navigation }) => {
     const [selectedCategorySlug, setSelectedCategorySlug] = useState('');
     const [isModalVisible, setModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filteredProducts, setFilteredProducts] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
-
+    const [sortModalVisible, setSortModalVisible] = useState(false);
+    const sortOrder = useSelector(state => state.product.sortOrder);
     const cartItems = useSelector(state => state.product.cartItems);
-
-    const toggleModal = useCallback(() => {
-        setModalVisible(prev => !prev);
-    }, []);
+    const toggleModal = useCallback(() => setModalVisible(prev => !prev), []);
 
     useEffect(() => {
         dispatch(fetchProductsByCategory({ categoryId: null }));
     }, [dispatch]);
 
     useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedSearchQuery(searchQuery);
-        }, 500); // adding debounce for search input
-
-        return () => {
-            clearTimeout(handler);
-        };
+        const handler = setTimeout(() => setDebouncedSearchQuery(searchQuery), 500);
+        return () => clearTimeout(handler);
     }, [searchQuery]);
 
     useEffect(() => {
         setIsLoading(true);
-
         const params = {
             ...(selectedCategorySlug && { categorySlug: selectedCategorySlug }),
             title: debouncedSearchQuery,
-            ...(minPrice && { price_min: minPrice }), // Using minPrice from Redux
-            ...(maxPrice && { price_max: maxPrice }), // Using maxPrice from Redux
+            ...(minPrice && { price_min: minPrice }),
+            ...(maxPrice && { price_max: maxPrice }),
+            ...(sortOrder && { sort: sortOrder }), // 🟢 include sort param
         };
-
         dispatch(fetchProducts({
             params,
             callback: () => setIsLoading(true),
-            successCallback: () => setIsLoading(false),
+            successCallback: () => setIsLoading(false)
         }));
-    }, [dispatch, selectedCategorySlug, debouncedSearchQuery, minPrice, maxPrice]);
+    }, [dispatch, selectedCategorySlug, debouncedSearchQuery, minPrice, maxPrice, sortOrder]);
 
 
-
-    const onRefresh = async () => {
-        setRefreshing(true);
-        setSelectedCategorySlug('');
-        setSearchQuery('');
-        dispatch(fetchProducts({ categorySlug: '', callback: () => { }, successCallback: () => { setRefreshing(false); } }));
-    };
-
-    useEffect(() => {
-        const filtered = searchQuery
-            ? allProducts.filter(product =>
-                product.title.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            : allProducts;
-        setFilteredProducts(filtered);
+    const filteredProducts = React.useMemo(() => {
+        if (!searchQuery) return allProducts;
+        const lower = searchQuery.toLowerCase();
+        return allProducts.filter(product => product.title.toLowerCase().includes(lower));
     }, [searchQuery, allProducts]);
 
     useEffect(() => {
@@ -83,15 +65,19 @@ const HomeScreen = ({ navigation }) => {
                     <View style={styles.headerTitleContainer}>
                         <Text style={styles.headerTitle}>LUXELANE</Text>
                     </View>
+
+                    <TouchableOpacity style={{ width: '20%', alignItems: 'flex-end' }} onPress={e => { e.stopPropagation(); navigation.navigate('Cart'); }}>
+                        <Text style={styles.cartIconText}>🛒</Text>
+                    </TouchableOpacity>
                 </View>
             ),
             headerShown: true,
         });
     }, [navigation]);
 
-    const handleProductPress = (product) => {
+    const handleProductPress = useCallback(product => {
         navigation.navigate('Detail', { product });
-    };
+    }, [navigation]);
 
     const handleSelectCategory = useCallback((categorySlug) => {
         setSearchQuery('');
@@ -99,19 +85,29 @@ const HomeScreen = ({ navigation }) => {
         toggleModal();
     }, [toggleModal]);
 
-    const handleAddToCart = (product) => {
+    const handleAddToCart = useCallback(product => {
         dispatch(addToCart(product));
-    };
+    }, [dispatch]);
 
-    const handleIncrement = (productId) => {
+    const handleIncrement = useCallback(productId => {
         dispatch(incrementQuantity(productId));
-    };
+    }, [dispatch]);
 
-    const handleDecrement = (productId) => {
+    const handleDecrement = useCallback(productId => {
         dispatch(decrementQuantity(productId));
-    };
+    }, [dispatch]);
 
-    const renderEmptyListComponent = () => (
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        setSelectedCategorySlug('');
+        setSearchQuery('');
+        dispatch(fetchProducts({ categorySlug: '', callback: () => { }, successCallback: () => setRefreshing(false) }));
+    }, [dispatch]);
+    const handleSort = (order) => {
+        dispatch(sortProductsByPrice(order));
+        setSortModalVisible(false);
+    };
+    const renderEmptyListComponent = useCallback(() => (
         <View style={styles.emptyListContainer}>
             <Text style={styles.emptyListText}>
                 {searchQuery
@@ -122,21 +118,17 @@ const HomeScreen = ({ navigation }) => {
                 }
             </Text>
         </View>
-    );
-    const handleApplyFilters = ({ categoryId, minPrice, maxPrice }) => {
-        const params = {
-            ...(categoryId && { categorySlug: categoryId }), // categorySlug is passed if a category is selected
-            ...(minPrice && { price_min: minPrice }), // Min price filter
-            ...(maxPrice && { price_max: maxPrice }), // Max price filter
-        };
+    ), [searchQuery, selectedCategorySlug]);
 
-        // Dispatch the fetchProducts action with the applied filters
-        dispatch(fetchProducts({
-            params,
-            callback: () => setIsLoading(true),
-            successCallback: () => setIsLoading(false),
-        }));
-    };
+    const handleApplyFilters = useCallback(({ categoryId, minPrice, maxPrice }) => {
+        const params = {
+            ...(categoryId && { categorySlug: categoryId }),
+            ...(minPrice && { price_min: minPrice }),
+            ...(maxPrice && { price_max: maxPrice }),
+        };
+        dispatch(fetchProducts({ params, callback: () => setIsLoading(true), successCallback: () => setIsLoading(false), }));
+    }, [dispatch]);
+
     return (
         <View style={styles.container}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '95%', alignSelf: 'center' }}>
@@ -149,22 +141,13 @@ const HomeScreen = ({ navigation }) => {
                         placeholderTextColor="#888"
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity
-                            onPress={() => setSearchQuery('')}
-                            style={styles.clearButton}
-                        >
+                        <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
                             <AntDesign name="closecircle" size={16} color="#888" />
                         </TouchableOpacity>
                     )}
                 </View>
-                <TouchableOpacity
-                    style={styles.cartButton}
-                    onPress={(e) => {
-                        e.stopPropagation();
-                        navigation.navigate('Cart')
-                    }}
-                >
-                    <Text style={styles.cartIconText}>🛒</Text>
+                <TouchableOpacity onPress={() => { setSortModalVisible(true) }} style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <MIcon name="sort" size={32} color="#888" />
                 </TouchableOpacity>
             </View>
             {isLoading ? (
@@ -184,7 +167,7 @@ const HomeScreen = ({ navigation }) => {
                             cartItems={cartItems}
                         />
                     )}
-                    keyExtractor={(item) => item.id.toString()}
+                    keyExtractor={item => item.id.toString()}
                     numColumns={2}
                     contentContainerStyle={styles.listContentContainer}
                     columnWrapperStyle={filteredProducts.length === 1
@@ -203,11 +186,16 @@ const HomeScreen = ({ navigation }) => {
                     categories={categories}
                     onSelectCategory={handleSelectCategory}
                     selectedCategorySlug={selectedCategorySlug}
-                    setMinPrice={(value) => dispatch(setMinPrice(value))} // Update minPrice in Redux
-                    setMaxPrice={(value) => dispatch(setMaxPrice(value))} // Update maxPrice in Redux
+                    setMinPrice={value => dispatch(setMinPrice(value))}
+                    setMaxPrice={value => dispatch(setMaxPrice(value))}
                     onApplyFilters={handleApplyFilters}
                 />
             )}
+            {sortModalVisible && <SortModal
+                isVisible={sortModalVisible}
+                onClose={() => setSortModalVisible(false)}
+                handleSort={handleSort}
+            />}
             <TouchableOpacity onPress={toggleModal} style={styles.categoriesButton}>
                 <AntDesign name="filter" size={24} color="#636363" />
             </TouchableOpacity>

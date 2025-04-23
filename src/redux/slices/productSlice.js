@@ -88,6 +88,14 @@ const productSlice = createSlice({
         setMaxPrice: (state, action) => {
             state.maxPrice = action.payload;
         },
+        sortProductsByPrice: (state, action) => {
+            const order = action.payload; // 'asc' or 'desc'
+            if (order === 'asc') {
+              state.allProducts = [...state.allProducts].sort((a, b) => a.price - b.price);
+            } else if (order === 'desc') {
+              state.allProducts = [...state.allProducts].sort((a, b) => b.price - a.price);
+            }
+          },
     },
     extraReducers: (builder) => {
         handleAsync(builder, fetchProducts, (state, action) => {
@@ -105,7 +113,7 @@ export const {
     decrementQuantity,
     removeFromCart,
     clearCart,
-    setMinPrice, setMaxPrice 
+    setMinPrice, setMaxPrice,sortProductsByPrice
 } = productSlice.actions;
 
 // Then export the reducer as default

@@ -4,6 +4,7 @@ import Modal from 'react-native-modal';
 import { useDispatch, useSelector } from 'react-redux';
 import { setMinPrice, setMaxPrice } from '../redux/slices/productSlice';
 import { screenHeight } from '../styles/globalStyles';
+import AntDesign from 'react-native-vector-icons/AntDesign';
 
 const CategoryModal = ({ isVisible, onClose, categories, onSelectCategory, selectedCategoryId, onApplyFilters, selectedCategorySlug }) => {
     const dispatch = useDispatch();
@@ -47,8 +48,12 @@ const CategoryModal = ({ isVisible, onClose, categories, onSelectCategory, selec
             style={styles.modal}
         >
             <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Select Category</Text>
-
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.modalTitle}>Select Category</Text>
+                    <TouchableOpacity onPress={onClose} style={{ width: '20%', alignItems: 'center' }}>
+                        <AntDesign name="close" size={24} color="#888" />
+                    </TouchableOpacity>
+                </View>
                 <TouchableOpacity
                     style={styles.categoryItem}
                     onPress={() => onSelectCategory(null)}
@@ -88,15 +93,13 @@ const CategoryModal = ({ isVisible, onClose, categories, onSelectCategory, selec
                         keyboardType="numeric"
                     />
                 </View>
-
-                <View style={{ marginTop: 16 }}>
-                    <Button title="Apply Filters" onPress={handleApplyFilters} />
-                </View>
-                <View style={{ marginTop: 8 }}>
-                    <Button title="Clear Price Range" onPress={handleClearPrices} />
-                </View>
-                <View style={{ marginTop: 8 }}>
-                    <Button title="Close" onPress={onClose} />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                    <View style={{ width: '48%' }}>
+                        <Button title="Clear Price Range" onPress={handleClearPrices} color={'#AEAEAE'} />
+                    </View>
+                    <View style={{ width: '48%' }}>
+                        <Button title="Apply Filters" onPress={handleApplyFilters} />
+                    </View>
                 </View>
             </View>
         </Modal>
@@ -113,8 +116,7 @@ const styles = StyleSheet.create({
         padding: 22,
         borderTopLeftRadius: 15,
         borderTopRightRadius: 15,
-        // maxHeight: Dimensions.get('window').height * 0.6,
-        maxHeight:screenHeight * 0.6,
+        maxHeight: screenHeight * 0.6,
     },
     modalTitle: {
         fontSize: 18,

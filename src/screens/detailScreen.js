@@ -8,40 +8,43 @@ import RelatedCard from '../components/RelatedCard';
 
 const DetailScreen = ({ route, navigation }) => {
   const { product } = route.params;
-  const [related, setRelated] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    const fetchRelated = async () => {
-      const allProducts = await getAllProducts();
-      const filtered = allProducts.filter(
-        (p) => p.id !== product.id && p.category.id === product.category.id
-      );
-      setRelated(filtered);
-    };
+    getAllProducts().then(setAllProducts);
+  }, []);
 
-    fetchRelated();
-  }, [product]);
+  const related = React.useMemo(
+    () => allProducts.filter((p) => p.id !== product.id && p.category.id === product.category.id),
+    [allProducts, product.id, product.category.id]
+  );
 
   useEffect(() => {
     navigation.setOptions({
       header: () => (
-        <PageHeader title={product?.category?.name ?? ''} onBackPress={() => { navigation.goBack() }} />
-      ),
+        <PageHeader title={product?.category?.name ?? ''} onBackPress={navigation.goBack} />),
       headerShown: true,
     });
-  }, [navigation]);
+  }, [navigation, product?.category?.name, navigation.goBack]);
 
   const onViewableItemsChanged = useCallback(({ viewableItems }) => {
     if (viewableItems.length > 0) {
-      setCurrentIndex(viewableItems[0].index ?? 0); // Update index based on viewable item
+      setCurrentIndex(viewableItems[0].index ?? 0);
     }
   }, []);
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
-  const renderImage = ({ item }) => (
-    <Image source={{ uri: item }} style={styles.image} />
+  const renderImage = useCallback(
+    ({ item }) => <Image source={{ uri: item }} style={styles.image} />,
+    []
+  );
+
+  const renderRelatedItem = useCallback(
+    ({ item }) => (
+      <RelatedCard item={item} onPress={() => navigation.push('Detail', { product: item })} />),
+    [navigation]
   );
 
   return (
@@ -57,22 +60,11 @@ const DetailScreen = ({ route, navigation }) => {
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
         />
-
         {product.images.length > 1 && (
           <View style={styles.paginationContainer}>
             {product.images.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.paginationDot,
-                  index === currentIndex ? styles.paginationDotActive : null,
-                ]}
-              />
-            ))}
-          </View>
-        )}
+              <View key={index} style={[styles.paginationDot, index === currentIndex ? styles.paginationDotActive : null,]} />))}</View>)}
       </View>
-
       <View style={styles.content}>
         <Text style={styles.title}>{product.title}</Text>
         <Text style={styles.price}>{formatPrice(product.price)}</Text>
@@ -83,12 +75,7 @@ const DetailScreen = ({ route, navigation }) => {
             <FlatList
               horizontal
               data={related}
-              renderItem={({ item }) => (
-                <RelatedCard
-                  item={item}
-                  onPress={() => navigation.push('Detail', { product: item })}
-                />
-              )}
+              renderItem={renderRelatedItem}
               keyExtractor={(item) => item.id.toString()}
               showsHorizontalScrollIndicator={false}
             />
